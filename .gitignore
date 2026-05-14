@@ -1,0 +1,16 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+.ask/
+.ask-states/
+build/
+node_modules/
+lambda/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+coverage/
+*.zip
+*.pem
+*.key

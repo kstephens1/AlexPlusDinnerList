@@ -1,0 +1,75 @@
+{
+  "manifest": {
+    "publishingInformation": {
+      "locales": {
+        "en-US": {
+          "summary": "Dinnertime widget for Echo Show.",
+          "examplePhrases": [
+            "Alexa, open dinnertime",
+            "Alexa, ask dinnertime what's for dinner",
+            "Alexa, launch dinnertime"
+          ],
+          "keywords": [
+            "dinner",
+            "meal",
+            "dinnertime"
+          ],
+          "name": "Dinnertime",
+          "description": "Shows dinner menu items on an Alexa widget."
+        },
+        "en-GB": {
+          "summary": "Dinnertime widget for Echo Show.",
+          "examplePhrases": [
+            "Alexa, open dinnertime",
+            "Alexa, ask dinnertime what's for dinner",
+            "Alexa, launch dinnertime"
+          ],
+          "keywords": [
+            "dinner",
+            "meal",
+            "dinnertime"
+          ],
+          "name": "Dinnertime",
+          "description": "Shows dinner menu items on an Alexa widget."
+        }
+      },
+      "isAvailableWorldwide": true,
+      "testingInstructions": "Install the Dinnertime widget from the Widget Gallery on an Echo Show 15 and verify that Data Store updates refresh the visible dinner items.",
+      "category": "ORGANIZERS_AND_ASSISTANTS",
+      "distributionCountries": []
+    },
+    "apis": {
+      "custom": {
+        "endpoint": {
+          "uri": "REPLACE_WITH_LAMBDA_ARN"
+        },
+        "interfaces": [
+          {
+            "type": "ALEXA_PRESENTATION_APL"
+          },
+          {
+            "type": "ALEXA_DATASTORE_PACKAGEMANAGER",
+            "packages": [
+              {
+                "id": "DinnertimeWidget"
+              }
+            ]
+          },
+          {
+            "type": "ALEXA_DATA_STORE"
+          },
+          {
+            "type": "ALEXA_EXTENSION",
+            "autoInitializedExtensions": [],
+            "requestedExtensions": [
+              {
+                "uri": "alexaext:datastore:10"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "manifestVersion": "1.0"
+  }
+}

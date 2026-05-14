@@ -1,0 +1,57 @@
+{
+  "packageVersion": "1.0",
+  "packageType": "APL_PACKAGE",
+  "publishingInformation": {
+    "schemaVersion": "1.0",
+    "locales": {
+      "en-US": [
+        {
+          "targetViewport": "WIDGET_M",
+          "metadata": {
+            "name": "Dinnertime",
+            "description": "Dinner menu items for the home screen.",
+            "keywords": [
+              "dinner",
+              "meal",
+              "dinnertime"
+            ],
+            "iconUri": "https://d3ozx4qyxcxwzd.cloudfront.net/default_icon.png",
+            "previews": [
+              "https://d3ozx4qyxcxwzd.cloudfront.net/default_preview.png"
+            ]
+          }
+        }
+      ],
+      "en-GB": [
+        {
+          "targetViewport": "WIDGET_M",
+          "metadata": {
+            "name": "Dinnertime",
+            "description": "Dinner menu items for the home screen.",
+            "keywords": [
+              "dinner",
+              "meal",
+              "dinnertime"
+            ],
+            "iconUri": "https://d3ozx4qyxcxwzd.cloudfront.net/default_icon.png",
+            "previews": [
+              "https://d3ozx4qyxcxwzd.cloudfront.net/default_preview.png"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "manifest": {
+    "id": "DinnertimeWidget",
+    "version": "1.0.3",
+    "installStateChanges": "INFORM",
+    "updateStateChanges": "INFORM",
+    "presentationDefinitions": [
+      {
+        "url": "presentations/default.tpl"
+      }
+    ],
+    "appliesTo": "${viewport.mode == 'HUB'}"
+  }
+}

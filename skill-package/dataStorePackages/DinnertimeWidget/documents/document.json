@@ -1,0 +1,131 @@
+{
+  "type": "APL",
+  "version": "2024.3",
+  "extensions": [
+    {
+      "name": "DataStore",
+      "uri": "alexaext:datastore:10"
+    }
+  ],
+  "settings": {
+    "DataStore": {
+      "dataBindings": [
+        {
+          "namespace": "Dinnertime",
+          "key": "items",
+          "dataBindingName": "DS_DinnertimeItems",
+          "dataType": "ARRAY",
+          "startIndex": 0,
+          "endIndex": 49
+        },
+        {
+          "namespace": "Dinnertime",
+          "key": "meta",
+          "dataBindingName": "DS_DinnertimeMeta",
+          "dataType": "OBJECT"
+        }
+      ]
+    }
+  },
+  "theme": "dark",
+  "mainTemplate": {
+    "parameters": [
+      "dinnerList"
+    ],
+    "items": [
+      {
+        "type": "Container",
+        "width": "100vw",
+        "height": "100vh",
+        "paddingLeft": 24,
+        "paddingRight": 24,
+        "paddingTop": 20,
+        "paddingBottom": 16,
+        "backgroundColor": "#17202A",
+        "items": [
+          {
+            "type": "Text",
+            "text": "${DS_DinnertimeMeta.title || dinnerList.title}",
+            "fontSize": 30,
+            "fontWeight": "700",
+            "color": "#FFFFFF",
+            "maxLines": 1
+          },
+          {
+            "type": "Sequence",
+            "height": "72vh",
+            "paddingTop": 10,
+            "scrollDirection": "vertical",
+            "data": "${DS_DinnertimeItems.length > 0 ? DS_DinnertimeItems : dinnerList.items}",
+            "items": [
+              {
+                "type": "Container",
+                "minHeight": 64,
+                "paddingTop": 8,
+                "paddingBottom": 8,
+                "direction": "row",
+                "alignItems": "start",
+                "items": [
+                  {
+                    "type": "Frame",
+                    "width": 10,
+                    "height": 10,
+                    "borderRadius": 5,
+                    "backgroundColor": "#58D68D",
+                    "marginTop": 8
+                  },
+                  {
+                    "type": "Text",
+                    "width": 48,
+                    "paddingLeft": 10,
+                    "text": "${data.day}",
+                    "fontSize": 14,
+                    "fontWeight": "700",
+                    "color": "#D5DBDB",
+                    "maxLines": 1,
+                    "paddingTop": 4
+                  },
+                  {
+                    "type": "Text",
+                    "paddingLeft": 6,
+                    "width": 0,
+                    "grow": 1,
+                    "shrink": 1,
+                    "text": "${data.text}",
+                    "fontSize": 18,
+                    "fontWeight": "600",
+                    "color": "#FFFFFF"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Container",
+            "height": 28,
+            "direction": "row",
+            "items": [
+              {
+                "type": "Text",
+                "text": "v1.0.9",
+                "fontSize": 14,
+                "color": "#AAB7B8",
+                "grow": 1,
+                "maxLines": 1
+              },
+              {
+                "type": "Text",
+                "text": "Updated ${DS_DinnertimeMeta.lastUpdated || dinnerList.lastUpdated}",
+                "fontSize": 14,
+                "color": "#AAB7B8",
+                "grow": 1,
+                "textAlign": "right",
+                "maxLines": 1
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

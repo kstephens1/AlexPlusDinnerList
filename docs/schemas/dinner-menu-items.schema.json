@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/dinner-menu-items.schema.json",
+  "title": "Dinner menu items",
+  "description": "Source array stored in S3 and synced to Alexa Data Store at namespace Dinnertime, key state.",
+  "type": "array",
+  "minItems": 0,
+  "maxItems": 50,
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "date",
+      "text"
+    ],
+    "properties": {
+      "date": {
+        "type": "string",
+        "format": "date",
+        "description": "Meal date in YYYY-MM-DD format."
+      },
+      "day": {
+        "type": "string",
+        "description": "Optional weekday abbreviation added by Lambda before writing to Alexa Data Store."
+      },
+      "text": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500,
+        "description": "Meal text shown on the widget."
+      }
+    }
+  }
+}

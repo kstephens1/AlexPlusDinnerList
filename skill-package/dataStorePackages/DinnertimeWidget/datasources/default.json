@@ -1,0 +1,34 @@
+{
+  "dinnerList": {
+    "title": "Dinnertime",
+    "emptyText": "No meals yet",
+    "items": [
+      {
+        "date": "2026-04-28",
+        "day": "Tue",
+        "text": "NO LIVE DATA - fallback meal 1"
+      },
+      {
+        "date": "2026-04-27",
+        "day": "Mon",
+        "text": "NO LIVE DATA - fallback meal 2"
+      },
+      {
+        "date": "2026-04-26",
+        "day": "Sun",
+        "text": "NO LIVE DATA - fallback meal 3"
+      },
+      {
+        "date": "2026-04-25",
+        "day": "Sat",
+        "text": "NO LIVE DATA - fallback meal 4"
+      },
+      {
+        "date": "2026-04-24",
+        "day": "Fri",
+        "text": "NO LIVE DATA - fallback meal 5"
+      }
+    ],
+    "lastUpdated": "2026-04-28"
+  }
+}

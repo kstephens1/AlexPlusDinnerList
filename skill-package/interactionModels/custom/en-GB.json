@@ -1,0 +1,33 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "dinnertime",
+      "intents": [
+        {
+          "name": "ShowDinnerMenuIntent",
+          "slots": [],
+          "samples": [
+            "show dinner menu",
+            "show dinner plan",
+            "what is for dinner",
+            "show meals"
+          ]
+        },
+        {
+          "name": "AMAZON.CancelIntent"
+        },
+        {
+          "name": "AMAZON.FallbackIntent"
+        },
+        {
+          "name": "AMAZON.HelpIntent"
+        },
+        {
+          "name": "AMAZON.StopIntent"
+        }
+      ],
+      "types": []
+    }
+  },
+  "version": "1"
+}
