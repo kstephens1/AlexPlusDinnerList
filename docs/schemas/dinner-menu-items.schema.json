@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://example.local/schemas/dinner-menu-items.schema.json",
   "title": "Dinner menu items",
-  "description": "Source array stored in S3 and synced to Alexa Data Store at namespace Dinnertime, key state.",
+  "description": "Source array stored in S3 and synced to Alexa Data Store at namespace Dinnertime, key state, with items and meta compatibility keys.",
   "type": "array",
   "minItems": 0,
   "maxItems": 50,

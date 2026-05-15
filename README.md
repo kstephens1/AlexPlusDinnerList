@@ -31,23 +31,25 @@ open dinnertime
 The widget uses Amazon's recommended pattern for dynamic widget content:
 
 1. The widget package ships a fallback datasource.
-2. The widget binds to Alexa Data Store on-device data.
+2. The widget binds to Alexa Data Store on-device data through the APL Data Store extension (`alexaext:datastore:10`).
 3. External systems update the S3 menu JSON.
 4. S3 object-created events trigger Lambda.
-5. Lambda writes the new menu array into Alexa Data Store for registered widget targets.
+5. Lambda writes the new menu data with the Alexa Data Store REST API by posting commands to `/v1/datastore/commands` for registered widget targets.
+6. The running widget observes Alexa Data Store and refreshes from the updated data.
 
 The Lambda also seeds Alexa Data Store when the widget install/open lifecycle arrives, using the current S3 menu if available and falling back to the bundled five records if S3 is unavailable.
 
 ## Data Store Contract
 
-The widget reads live menu state from:
+The widget reads live menu data from Alexa Data Store, not directly from S3.
+The current APL document prefers this combined key:
 
 ```text
 namespace: Dinnertime
 key: state
 ```
 
-Expected value:
+Expected `Dinnertime/state` value:
 
 ```json
 {
@@ -59,6 +61,37 @@ Expected value:
       "text": "meal 1"
     }
   ],
+  "itemCount": 1,
+  "lastUpdated": "2026-05-13",
+  "latestMealDate": "2026-04-28"
+}
+```
+
+Lambda also writes these compatibility keys:
+
+```text
+namespace: Dinnertime
+key: items
+```
+
+Expected `Dinnertime/items` value:
+
+```json
+[
+  {
+    "date": "2026-04-28",
+    "day": "Tue",
+    "text": "meal 1"
+  }
+]
+```
+
+Expected `Dinnertime/meta` value:
+
+```json
+{
+  "title": "Dinnertime",
+  "itemCount": 1,
   "lastUpdated": "2026-05-13",
   "latestMealDate": "2026-04-28"
 }
@@ -79,18 +112,16 @@ Schema reference:
 docs/schemas/dinner-menu-items.schema.json
 ```
 
-The Data Store namespace is still `DinnerList` intentionally. The skill was renamed to `Dinnertime`, but keeping the namespace stable avoids breaking existing simulator/device data.
-
 ## Fallback Data
 
-If Alexa Data Store has no live data for `DinnerList/items`, the widget falls back to:
+If Alexa Data Store has no live data for `Dinnertime/state` or compatibility `Dinnertime/items`, the widget falls back to:
 
 ```text
-meal 1
-meal 2
-meal 3
-meal 4
-meal 5
+NO LIVE DATA - fallback meal 1
+NO LIVE DATA - fallback meal 2
+NO LIVE DATA - fallback meal 3
+NO LIVE DATA - fallback meal 4
+NO LIVE DATA - fallback meal 5
 ```
 
 Defined in:
@@ -122,6 +153,8 @@ The script:
 - packages Lambda
 - creates or updates the Lambda execution role
 - creates or updates the Lambda function
+- fetches the Alexa skill messaging credentials when `ALEXA_SKILL_ID` is set
+- configures Lambda with the S3 values and Alexa Data Store credentials
 - writes the Lambda ARN into `skill-package/skill.json`
 - ensures the Alexa skill can invoke Lambda
 - deploys skill metadata with ASK CLI when `DEPLOY_SKILL=1`
@@ -144,6 +177,8 @@ ASK_PROFILE=default
 MENU_KEY=dinner-menu/items.json
 TARGETS_KEY=dinner-menu/targets.json
 ```
+
+`ALEXA_SKILL_CLIENT_ID` and `ALEXA_SKILL_CLIENT_SECRET` must be present in the deployed Lambda environment for Lambda to request an LWA token and call the Alexa Data Store REST API. They are skill messaging credentials for the Alexa skill, not per-widget-install credentials. When `ALEXA_SKILL_ID` is set, `scripts/deploy.sh` fetches the current credentials from ASK with `ask smapi get-skill-credentials` and writes them into Lambda on every deploy. Local `.env` values for those two variables are only needed if you want to configure them manually.
 
 If `S3_BUCKET_NAME` is empty, `scripts/deploy.sh` creates/uses:
 
@@ -168,7 +203,7 @@ Expected file body:
 ]
 ```
 
-When this object is updated, S3 invokes Lambda and Lambda pushes the new array into Alexa Data Store for devices/users that have opened or installed the widget.
+When this object is updated, S3 invokes Lambda and Lambda pushes the new data into Alexa Data Store with the REST API for devices/users that have opened or installed the widget. The widget then refreshes from Alexa Data Store through the APL Data Store extension; it does not read S3 directly.
 
 More detailed deployment instructions are in:
 
@@ -192,36 +227,47 @@ Use the same locale in the simulator as the skill model. This project supports `
 
 ## Widget Testing
 
-In the widget/Data Store simulator, use this payload for `DinnerList/items`:
+In the widget/Data Store simulator, use this payload for `Dinnertime/state`:
 
 ```json
 [
   {
     "type": "PUT_OBJECT",
-    "namespace": "DinnerList",
-    "key": "items",
-    "content": [
-      {
-        "date": "2026-04-28",
-        "text": "meal 1"
-      },
-      {
-        "date": "2026-04-27",
-        "text": "meal 2"
-      },
-      {
-        "date": "2026-04-26",
-        "text": "meal 3"
-      },
-      {
-        "date": "2026-04-25",
-        "text": "meal 4"
-      },
-      {
-        "date": "2026-04-24",
-        "text": "meal 5"
-      }
-    ]
+    "namespace": "Dinnertime",
+    "key": "state",
+    "content": {
+      "title": "Dinnertime",
+      "items": [
+        {
+          "date": "2026-04-28",
+          "day": "Tue",
+          "text": "meal 1"
+        },
+        {
+          "date": "2026-04-27",
+          "day": "Mon",
+          "text": "meal 2"
+        },
+        {
+          "date": "2026-04-26",
+          "day": "Sun",
+          "text": "meal 3"
+        },
+        {
+          "date": "2026-04-25",
+          "day": "Sat",
+          "text": "meal 4"
+        },
+        {
+          "date": "2026-04-24",
+          "day": "Fri",
+          "text": "meal 5"
+        }
+      ],
+      "itemCount": 5,
+      "lastUpdated": "2026-04-28",
+      "latestMealDate": "2026-04-28"
+    }
   }
 ]
 ```

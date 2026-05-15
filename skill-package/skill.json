@@ -41,7 +41,7 @@
     "apis": {
       "custom": {
         "endpoint": {
-          "uri": "REPLACE_WITH_LAMBDA_ARN"
+          "uri": "arn:aws:lambda:us-east-1:317267910704:function:alexa-plus-dinner-list"
         },
         "interfaces": [
           {

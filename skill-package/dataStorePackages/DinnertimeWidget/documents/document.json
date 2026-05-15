@@ -12,6 +12,12 @@
       "dataBindings": [
         {
           "namespace": "Dinnertime",
+          "key": "state",
+          "dataBindingName": "DS_DinnertimeState",
+          "dataType": "OBJECT"
+        },
+        {
+          "namespace": "Dinnertime",
           "key": "items",
           "dataBindingName": "DS_DinnertimeItems",
           "dataType": "ARRAY",
@@ -45,7 +51,7 @@
         "items": [
           {
             "type": "Text",
-            "text": "${DS_DinnertimeMeta.title || dinnerList.title}",
+            "text": "${DS_DinnertimeState.title || DS_DinnertimeMeta.title || dinnerList.title}",
             "fontSize": 30,
             "fontWeight": "700",
             "color": "#FFFFFF",
@@ -56,7 +62,7 @@
             "height": "72vh",
             "paddingTop": 10,
             "scrollDirection": "vertical",
-            "data": "${DS_DinnertimeItems.length > 0 ? DS_DinnertimeItems : dinnerList.items}",
+            "data": "${DS_DinnertimeState.items && DS_DinnertimeState.items.length > 0 ? DS_DinnertimeState.items : (DS_DinnertimeItems.length > 0 ? DS_DinnertimeItems : dinnerList.items)}",
             "items": [
               {
                 "type": "Container",
@@ -107,7 +113,7 @@
             "items": [
               {
                 "type": "Text",
-                "text": "v1.0.9",
+                "text": "v1.0.10",
                 "fontSize": 14,
                 "color": "#AAB7B8",
                 "grow": 1,
@@ -115,7 +121,7 @@
               },
               {
                 "type": "Text",
-                "text": "Updated ${DS_DinnertimeMeta.lastUpdated || dinnerList.lastUpdated}",
+                "text": "Updated ${DS_DinnertimeState.lastUpdated || DS_DinnertimeMeta.lastUpdated || dinnerList.lastUpdated}",
                 "fontSize": 14,
                 "color": "#AAB7B8",
                 "grow": 1,

@@ -26,6 +26,15 @@ test("validateMenuItems removes past meals while keeping today and future meals"
   assert.equal(items[0].day.length, 3);
 });
 
+test("default fallback meals start today so they survive filtering", () => {
+  const today = _private.currentDateString();
+  const fallbackItems = _private.validateMenuItems(_private.buildDefaultMenuItems());
+
+  assert.equal(fallbackItems.length, 5);
+  assert.equal(fallbackItems[0].date, today);
+  assert.ok(fallbackItems.every((item) => item.date >= today));
+});
+
 test("buildMenuState reflects the filtered meal list", () => {
   const today = _private.currentDateString();
   const tomorrow = offsetDate(today, 1);

@@ -19,27 +19,12 @@ const s3 = new S3Client({});
 let cachedLwaToken;
 let cachedLwaTokenExpiresAt = 0;
 
-const DEFAULT_MENU_ITEMS = [
-  {
-    date: "2026-04-28",
-    text: "meal 1"
-  },
-  {
-    date: "2026-04-27",
-    text: "meal 2"
-  },
-  {
-    date: "2026-04-26",
-    text: "meal 3"
-  },
-  {
-    date: "2026-04-25",
-    text: "meal 4"
-  },
-  {
-    date: "2026-04-24",
-    text: "meal 5"
-  }
+const DEFAULT_MENU_TEXTS = [
+  "Pasta bake with garlic bread",
+  "Chicken stir fry with rice",
+  "Mini toad in the hole with broccoli",
+  "Meatballs with tomato sauce",
+  "Roast chicken with vegetables"
 ];
 
 exports.handler = async function handler(event) {
@@ -240,6 +225,12 @@ async function sendDataStoreCommands(apiEndpoint, target, menuItems, reason) {
       {
         type: "PUT_OBJECT",
         namespace: DATA_NAMESPACE,
+        key: STATE_KEY,
+        content: state
+      },
+      {
+        type: "PUT_OBJECT",
+        namespace: DATA_NAMESPACE,
         key: ITEMS_KEY,
         content: menuItems
       },
@@ -254,12 +245,6 @@ async function sendDataStoreCommands(apiEndpoint, target, menuItems, reason) {
           latestMealDate: state.latestMealDate
         }
       },
-      {
-        type: "PUT_OBJECT",
-        namespace: DATA_NAMESPACE,
-        key: STATE_KEY,
-        content: state
-      }
     ],
     target,
     attemptDeliveryUntil: new Date(Date.now() + 60 * 60 * 1000).toISOString()
@@ -307,7 +292,7 @@ async function sendDataStoreCommands(apiEndpoint, target, menuItems, reason) {
 
 async function loadMenuItems() {
   if (!MENU_BUCKET) {
-    return validateMenuItems(DEFAULT_MENU_ITEMS);
+    return validateMenuItems(buildDefaultMenuItems());
   }
 
   try {
@@ -322,8 +307,22 @@ async function loadMenuItems() {
       errorName: error.name,
       errorMessage: error.message
     }));
-    return validateMenuItems(DEFAULT_MENU_ITEMS);
+    return validateMenuItems(buildDefaultMenuItems());
   }
+}
+
+function buildDefaultMenuItems() {
+  const today = currentDateString();
+  return DEFAULT_MENU_TEXTS.map((text, index) => ({
+    date: addDays(today, index),
+    text
+  }));
+}
+
+function addDays(date, days) {
+  const value = new Date(`${date}T00:00:00Z`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
 }
 
 async function loadTargets() {
@@ -485,6 +484,7 @@ exports.DATA_STORE_LOCATION = {
 };
 
 exports._private = {
+  buildDefaultMenuItems,
   buildMenuState,
   currentDateString,
   isPastMealDate,

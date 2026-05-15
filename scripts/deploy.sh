@@ -171,30 +171,60 @@ else
   "${AWS[@]}" lambda wait function-updated --function-name "$LAMBDA_FUNCTION_NAME"
 fi
 
-echo "Configuring Lambda S3 environment..."
+echo "Configuring Lambda environment..."
 CURRENT_ENV_JSON="$("${AWS[@]}" lambda get-function-configuration \
   --function-name "$LAMBDA_FUNCTION_NAME" \
   --query 'Environment.Variables' \
   --output json 2>/dev/null || echo '{}')"
 ENV_JSON_FILE="$BUILD_DIR/lambda-env.json"
+SKILL_CREDENTIALS_JSON="{}"
+if [[ -n "${ALEXA_SKILL_ID:-}" ]]; then
+  require_cmd ask
+  echo "Fetching Alexa skill messaging credentials..."
+  SKILL_CREDENTIALS_JSON="$(ask smapi get-skill-credentials \
+    --skill-id "$ALEXA_SKILL_ID" \
+    --profile "$ASK_PROFILE")"
+fi
 CURRENT_ENV_JSON="$CURRENT_ENV_JSON" \
   MENU_BUCKET="$S3_BUCKET_NAME" \
   MENU_KEY="$MENU_KEY" \
   TARGETS_KEY="$TARGETS_KEY" \
-  node -e 'const current = JSON.parse(process.env.CURRENT_ENV_JSON || "{}") || {}; current.MENU_BUCKET = process.env.MENU_BUCKET; current.MENU_KEY = process.env.MENU_KEY; current.TARGETS_KEY = process.env.TARGETS_KEY; process.stdout.write(JSON.stringify({ Variables: current }));' > "$ENV_JSON_FILE"
+  ALEXA_SKILL_CLIENT_ID="${ALEXA_SKILL_CLIENT_ID:-}" \
+  ALEXA_SKILL_CLIENT_SECRET="${ALEXA_SKILL_CLIENT_SECRET:-}" \
+  SKILL_CREDENTIALS_JSON="$SKILL_CREDENTIALS_JSON" \
+  EXPECT_SKILL_CREDENTIALS="$([[ -n "${ALEXA_SKILL_ID:-}" ]] && echo 1 || echo 0)" \
+  node -e '
+    const current = JSON.parse(process.env.CURRENT_ENV_JSON || "{}") || {};
+    const skillCredentials = JSON.parse(process.env.SKILL_CREDENTIALS_JSON || "{}") || {};
+    const fetchedCredentials = skillCredentials.skillMessagingCredentials || skillCredentials;
+    current.MENU_BUCKET = process.env.MENU_BUCKET;
+    current.MENU_KEY = process.env.MENU_KEY;
+    current.TARGETS_KEY = process.env.TARGETS_KEY;
+    if (process.env.ALEXA_SKILL_CLIENT_ID) {
+      current.ALEXA_SKILL_CLIENT_ID = process.env.ALEXA_SKILL_CLIENT_ID;
+    }
+    if (process.env.ALEXA_SKILL_CLIENT_SECRET) {
+      current.ALEXA_SKILL_CLIENT_SECRET = process.env.ALEXA_SKILL_CLIENT_SECRET;
+    }
+    if (fetchedCredentials.clientId && fetchedCredentials.clientSecret) {
+      current.ALEXA_SKILL_CLIENT_ID = fetchedCredentials.clientId;
+      current.ALEXA_SKILL_CLIENT_SECRET = fetchedCredentials.clientSecret;
+    } else if (process.env.EXPECT_SKILL_CREDENTIALS === "1") {
+      throw new Error("ASK did not return skill messaging clientId/clientSecret.");
+    }
+    process.stdout.write(JSON.stringify({ Variables: current }));
+  ' > "$ENV_JSON_FILE"
 "${AWS[@]}" lambda update-function-configuration \
   --function-name "$LAMBDA_FUNCTION_NAME" \
   --environment "file://$ENV_JSON_FILE" >/dev/null
 "${AWS[@]}" lambda wait function-updated --function-name "$LAMBDA_FUNCTION_NAME"
 
-echo "Ensuring initial menu JSON exists..."
-if ! "${AWS[@]}" s3api head-object --bucket "$S3_BUCKET_NAME" --key "$MENU_KEY" >/dev/null 2>&1; then
-  "${AWS[@]}" s3api put-object \
-    --bucket "$S3_BUCKET_NAME" \
-    --key "$MENU_KEY" \
-    --body "$ROOT_DIR/data/dinner-menu-items.json" \
-    --content-type application/json >/dev/null
-fi
+echo "Uploading menu JSON..."
+"${AWS[@]}" s3api put-object \
+  --bucket "$S3_BUCKET_NAME" \
+  --key "$MENU_KEY" \
+  --body "$ROOT_DIR/data/dinner-menu-items.json" \
+  --content-type application/json >/dev/null
 
 echo "Configuring S3 trigger for menu updates..."
 BUCKET_ARN="arn:aws:s3:::$S3_BUCKET_NAME"
