@@ -44,7 +44,7 @@
   },
   "manifest": {
     "id": "DinnertimeWidget",
-    "version": "1.0.10",
+    "version": "1.0.15",
     "installStateChanges": "INFORM",
     "updateStateChanges": "INFORM",
     "presentationDefinitions": [

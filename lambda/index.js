@@ -1,5 +1,7 @@
 "use strict";
 
+const fs = require("node:fs");
+const path = require("node:path");
 const {
   GetObjectCommand,
   PutObjectCommand,
@@ -11,8 +13,9 @@ const STATE_KEY = "state";
 const ITEMS_KEY = "items";
 const META_KEY = "meta";
 const MAX_MENU_ITEMS = 50;
-const MENU_BUCKET = process.env.MENU_BUCKET;
-const MENU_KEY = process.env.MENU_KEY || "dinner-menu/items.json";
+const FULLSCREEN_TOKEN = "dinnertime-fullscreen";
+const FULLSCREEN_TIMEOUT_MS = 15000;
+const TARGETS_BUCKET = process.env.TARGETS_BUCKET || process.env.MENU_BUCKET;
 const TARGETS_KEY = process.env.TARGETS_KEY || "dinner-menu/targets.json";
 const MENU_TIME_ZONE = process.env.MENU_TIME_ZONE || "Europe/London";
 const s3 = new S3Client({});
@@ -28,10 +31,6 @@ const DEFAULT_MENU_TEXTS = [
 ];
 
 exports.handler = async function handler(event) {
-  if (isS3ObjectCreatedEvent(event)) {
-    return handleS3ObjectCreated(event);
-  }
-
   console.log(JSON.stringify({
     requestType: event && event.request && event.request.type,
     requestId: event && event.request && event.request.requestId,
@@ -49,7 +48,15 @@ exports.handler = async function handler(event) {
   if (request.type === "LaunchRequest") {
     await rememberAlexaTarget(event);
     await seedDeviceDataStore(event);
-    return speech("Dinnertime is ready.");
+    const menuItems = await loadMenuItems();
+    return fullScreenMenuResponse(menuItems, todayMealSpeech(menuItems));
+  }
+
+  if (request.type === "Alexa.Presentation.APL.UserEvent") {
+    await rememberAlexaTarget(event);
+    await seedDeviceDataStore(event);
+    const menuItems = await loadMenuItems();
+    return fullScreenMenuResponse(menuItems, todayMealSpeech(menuItems));
   }
 
   if (request.type === "Alexa.DataStore.PackageManager.UsagesInstalled") {
@@ -96,7 +103,135 @@ function speech(text) {
         type: "PlainText",
         text
       },
+      shouldEndSession: false
+    }
+  };
+}
+
+function fullScreenMenuResponse(menuItems, text) {
+  const state = buildMenuState(menuItems);
+  return {
+    version: "1.0",
+    response: {
+      outputSpeech: {
+        type: "PlainText",
+        text
+      },
+      directives: [
+        {
+          type: "Alexa.Presentation.APL.RenderDocument",
+          token: FULLSCREEN_TOKEN,
+          document: buildFullScreenDocument(),
+          datasources: {
+            dinnerList: state
+          }
+        }
+      ],
       shouldEndSession: true
+    }
+  };
+}
+
+function todayMealSpeech(menuItems) {
+  const today = currentDateString();
+  const todayItem = menuItems.find((item) => item.date === today);
+
+  if (!todayItem) {
+    return "There is no meal listed for today.";
+  }
+
+  return `Today's meal is ${todayItem.text}.`;
+}
+
+function buildFullScreenDocument() {
+  return {
+    type: "APL",
+    version: "2024.3",
+    theme: "dark",
+    settings: {
+      idleTimeout: FULLSCREEN_TIMEOUT_MS
+    },
+    mainTemplate: {
+      parameters: ["dinnerList"],
+      items: [
+        {
+          type: "Container",
+          width: "100vw",
+          height: "100vh",
+          paddingLeft: 56,
+          paddingRight: 56,
+          paddingTop: 38,
+          paddingBottom: 28,
+          backgroundColor: "#17202A",
+          items: [
+            {
+              type: "Text",
+              text: "${dinnerList.title}",
+              fontSize: 44,
+              fontWeight: "700",
+              color: "#FFFFFF",
+              maxLines: 1
+            },
+            {
+              type: "Sequence",
+              height: "76vh",
+              paddingTop: 20,
+              scrollDirection: "vertical",
+              data: "${dinnerList.items}",
+              items: [
+                {
+                  type: "Container",
+                  minHeight: 72,
+                  paddingTop: 10,
+                  paddingBottom: 10,
+                  direction: "row",
+                  alignItems: "start",
+                  items: [
+                    {
+                      type: "Frame",
+                      width: 12,
+                      height: 12,
+                      borderRadius: 6,
+                      backgroundColor: "#58D68D",
+                      marginTop: 12
+                    },
+                    {
+                      type: "Text",
+                      width: 72,
+                      paddingLeft: 16,
+                      text: "${data.day}",
+                      fontSize: 22,
+                      fontWeight: "700",
+                      color: "#D5DBDB",
+                      maxLines: 1,
+                      paddingTop: 2
+                    },
+                    {
+                      type: "Text",
+                      paddingLeft: 10,
+                      width: 0,
+                      grow: 1,
+                      shrink: 1,
+                      text: "${data.text}",
+                      fontSize: 28,
+                      fontWeight: "600",
+                      color: "#FFFFFF"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              type: "Text",
+              text: "Live - Updated ${dinnerList.lastUpdated} ${dinnerList.lastUpdatedTime}",
+              fontSize: 20,
+              color: "#AAB7B8",
+              textAlign: "right",
+              maxLines: 1
+            }
+          ]
+        }
+      ]
     }
   };
 }
@@ -132,51 +267,9 @@ async function seedDeviceDataStore(event) {
   await sendDataStoreCommands(apiEndpoint, target, menuItems, "seed");
 }
 
-async function handleS3ObjectCreated(event) {
-  const records = Array.isArray(event.Records) ? event.Records : [];
-  const changedKeys = records
-    .map((record) => record && record.s3 && record.s3.object && record.s3.object.key)
-    .filter(Boolean)
-    .map((key) => decodeURIComponent(key.replace(/\+/g, " ")));
-
-  console.log(JSON.stringify({
-    eventType: "S3ObjectCreated",
-    changedKeys
-  }));
-
-  if (!changedKeys.includes(MENU_KEY)) {
-    return { ok: true, skipped: true };
-  }
-
-  const menuItems = await loadMenuItems();
-  const targets = await loadTargets();
-  let delivered = 0;
-
-  for (const registeredTarget of targets) {
-    if (!registeredTarget.apiEndpoint || !registeredTarget.target) {
-      continue;
-    }
-
-    await sendDataStoreCommands(
-      registeredTarget.apiEndpoint,
-      registeredTarget.target,
-      menuItems,
-      "s3Sync"
-    );
-    delivered += 1;
-  }
-
-  console.log(JSON.stringify({
-    s3SyncTargets: targets.length,
-    s3SyncDelivered: delivered
-  }));
-
-  return { ok: true, delivered };
-}
-
 async function rememberAlexaTarget(event) {
-  if (!MENU_BUCKET) {
-    console.log("Skipping target registration: missing MENU_BUCKET");
+  if (!TARGETS_BUCKET) {
+    console.log("Skipping target registration: missing TARGETS_BUCKET");
     return;
   }
 
@@ -223,10 +316,8 @@ async function sendDataStoreCommands(apiEndpoint, target, menuItems, reason) {
   const body = {
     commands: [
       {
-        type: "PUT_OBJECT",
-        namespace: DATA_NAMESPACE,
-        key: STATE_KEY,
-        content: state
+        type: "PURGE_OBJECTS",
+        namespace: DATA_NAMESPACE
       },
       {
         type: "PUT_OBJECT",
@@ -237,11 +328,21 @@ async function sendDataStoreCommands(apiEndpoint, target, menuItems, reason) {
       {
         type: "PUT_OBJECT",
         namespace: DATA_NAMESPACE,
+        key: STATE_KEY,
+        content: state
+      },
+      {
+        type: "PUT_OBJECT",
+        namespace: DATA_NAMESPACE,
         key: META_KEY,
         content: {
           title: state.title,
           itemCount: state.itemCount,
+          source: state.source,
           lastUpdated: state.lastUpdated,
+          lastUpdatedTime: state.lastUpdatedTime,
+          updatedAt: state.updatedAt,
+          pushedAt: state.pushedAt,
           latestMealDate: state.latestMealDate
         }
       },
@@ -291,19 +392,13 @@ async function sendDataStoreCommands(apiEndpoint, target, menuItems, reason) {
 }
 
 async function loadMenuItems() {
-  if (!MENU_BUCKET) {
-    return validateMenuItems(buildDefaultMenuItems());
-  }
-
   try {
-    const raw = await getObjectText(MENU_KEY);
+    const raw = fs.readFileSync(findMenuFilePath(), "utf8");
     const parsed = JSON.parse(raw);
     return validateMenuItems(Array.isArray(parsed) ? parsed : parsed.items || parsed.dinnerList?.items);
   } catch (error) {
     console.log(JSON.stringify({
       menuLoadFailed: true,
-      menuBucket: MENU_BUCKET,
-      menuKey: MENU_KEY,
       errorName: error.name,
       errorMessage: error.message
     }));
@@ -326,7 +421,7 @@ function addDays(date, days) {
 }
 
 async function loadTargets() {
-  if (!MENU_BUCKET) {
+  if (!TARGETS_BUCKET) {
     return [];
   }
 
@@ -349,7 +444,7 @@ async function loadTargets() {
 
 async function getObjectText(key) {
   const response = await s3.send(new GetObjectCommand({
-    Bucket: MENU_BUCKET,
+    Bucket: TARGETS_BUCKET,
     Key: key
   }));
 
@@ -358,11 +453,23 @@ async function getObjectText(key) {
 
 async function putJson(key, value) {
   await s3.send(new PutObjectCommand({
-    Bucket: MENU_BUCKET,
+    Bucket: TARGETS_BUCKET,
     Key: key,
     Body: `${JSON.stringify(value, null, 2)}\n`,
     ContentType: "application/json"
   }));
+}
+
+function findMenuFilePath() {
+  const candidates = [
+    path.join(__dirname, "data", "dinner-menu-items.json"),
+    path.join(__dirname, "..", "data", "dinner-menu-items.json")
+  ];
+  const found = candidates.find((candidate) => fs.existsSync(candidate));
+  if (!found) {
+    throw new Error("Packaged dinner-menu-items.json was not found.");
+  }
+  return found;
 }
 
 function validateMenuItems(value) {
@@ -390,24 +497,21 @@ function validateMenuItems(value) {
   }).filter((item) => !isPastMealDate(item.date));
 }
 
-function isS3ObjectCreatedEvent(event) {
-  return Boolean(
-    event &&
-    Array.isArray(event.Records) &&
-    event.Records.some((record) => record.eventSource === "aws:s3")
-  );
-}
-
 function buildMenuState(menuItems) {
+  const pushedAt = new Date().toISOString();
   const dates = menuItems
     .map((item) => item.date)
     .filter(Boolean)
     .sort();
   return {
     title: "Dinnertime",
+    source: "Live",
     items: menuItems,
     itemCount: menuItems.length,
     lastUpdated: new Date().toISOString().slice(0, 10),
+    lastUpdatedTime: formatTime(pushedAt),
+    updatedAt: pushedAt,
+    pushedAt,
     latestMealDate: dates.length > 0 ? dates[dates.length - 1] : null
   };
 }
@@ -430,6 +534,18 @@ function currentDateString() {
 function formatWeekday(date) {
   return new Intl.DateTimeFormat("en-GB", { weekday: "short", timeZone: "UTC" })
     .format(new Date(`${date}T00:00:00Z`));
+}
+
+function formatTime(date) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: MENU_TIME_ZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false
+  }).formatToParts(new Date(date));
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.hour}:${values.minute}:${values.second}`;
 }
 
 async function getLwaToken() {
@@ -488,5 +604,6 @@ exports._private = {
   buildMenuState,
   currentDateString,
   isPastMealDate,
+  todayMealSpeech,
   validateMenuItems
 };

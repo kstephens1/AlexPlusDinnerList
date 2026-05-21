@@ -48,3 +48,15 @@ test("buildMenuState reflects the filtered meal list", () => {
   assert.equal(state.latestMealDate, tomorrow);
   assert.deepEqual(state.items.map((item) => item.text), ["Future meal"]);
 });
+
+test("todayMealSpeech only announces today's meal", () => {
+  const today = _private.currentDateString();
+  const tomorrow = offsetDate(today, 1);
+
+  const speech = _private.todayMealSpeech([
+    { date: today, day: "Sat", text: "Today's dinner" },
+    { date: tomorrow, day: "Sun", text: "Tomorrow's dinner" }
+  ]);
+
+  assert.equal(speech, "Today's meal is Today's dinner.");
+});

@@ -40,65 +40,78 @@
     ],
     "items": [
       {
-        "type": "Container",
+        "type": "TouchWrapper",
+        "onPress": [
+          {
+            "type": "SendEvent",
+            "arguments": [
+              "openFullScreen"
+            ],
+            "flags": {
+              "interactionMode": "STANDARD"
+            }
+          }
+        ],
+        "item": {
+          "type": "Container",
         "width": "100vw",
         "height": "100vh",
-        "paddingLeft": 24,
-        "paddingRight": 24,
-        "paddingTop": 20,
-        "paddingBottom": 16,
+        "paddingLeft": 16,
+        "paddingRight": 16,
+        "paddingTop": 12,
+        "paddingBottom": 10,
         "backgroundColor": "#17202A",
         "items": [
           {
             "type": "Text",
             "text": "${DS_DinnertimeState.title || DS_DinnertimeMeta.title || dinnerList.title}",
-            "fontSize": 30,
+            "fontSize": 24,
             "fontWeight": "700",
             "color": "#FFFFFF",
             "maxLines": 1
           },
           {
             "type": "Sequence",
-            "height": "72vh",
-            "paddingTop": 10,
+            "height": "76vh",
+            "paddingTop": 6,
             "scrollDirection": "vertical",
-            "data": "${DS_DinnertimeState.items && DS_DinnertimeState.items.length > 0 ? DS_DinnertimeState.items : (DS_DinnertimeItems.length > 0 ? DS_DinnertimeItems : dinnerList.items)}",
+            "data": "${DS_DinnertimeItems.length > 0 ? DS_DinnertimeItems : (DS_DinnertimeState.items && DS_DinnertimeState.items.length > 0 ? DS_DinnertimeState.items : dinnerList.items)}",
             "items": [
               {
                 "type": "Container",
-                "minHeight": 64,
-                "paddingTop": 8,
-                "paddingBottom": 8,
+                "minHeight": 48,
+                "paddingTop": 5,
+                "paddingBottom": 5,
                 "direction": "row",
                 "alignItems": "start",
                 "items": [
                   {
                     "type": "Frame",
-                    "width": 10,
-                    "height": 10,
-                    "borderRadius": 5,
+                    "width": 8,
+                    "height": 8,
+                    "borderRadius": 4,
                     "backgroundColor": "#58D68D",
-                    "marginTop": 8
+                    "marginTop": 7
                   },
                   {
                     "type": "Text",
-                    "width": 48,
-                    "paddingLeft": 10,
+                    "width": 40,
+                    "paddingLeft": 8,
                     "text": "${data.day}",
-                    "fontSize": 14,
+                    "fontSize": 13,
                     "fontWeight": "700",
                     "color": "#D5DBDB",
                     "maxLines": 1,
-                    "paddingTop": 4
+                    "paddingTop": 1
                   },
                   {
                     "type": "Text",
-                    "paddingLeft": 6,
+                    "paddingLeft": 4,
                     "width": 0,
                     "grow": 1,
                     "shrink": 1,
                     "text": "${data.text}",
-                    "fontSize": 18,
+                    "fontSize": 16,
                     "fontWeight": "600",
                     "color": "#FFFFFF"
                   }
@@ -108,21 +121,21 @@
           },
           {
             "type": "Container",
-            "height": 28,
+            "height": 22,
             "direction": "row",
             "items": [
               {
                 "type": "Text",
-                "text": "v1.0.10",
-                "fontSize": 14,
+                "text": "v1.0.15",
+                "fontSize": 12,
                 "color": "#AAB7B8",
                 "grow": 1,
                 "maxLines": 1
               },
               {
                 "type": "Text",
-                "text": "Updated ${DS_DinnertimeState.lastUpdated || DS_DinnertimeMeta.lastUpdated || dinnerList.lastUpdated}",
-                "fontSize": 14,
+                "text": "${DS_DinnertimeItems.length > 0 || (DS_DinnertimeState.items && DS_DinnertimeState.items.length > 0) ? 'Live' : 'Fallback'} - Updated ${DS_DinnertimeMeta.lastUpdated || DS_DinnertimeState.lastUpdated || dinnerList.lastUpdated} ${DS_DinnertimeMeta.lastUpdatedTime || DS_DinnertimeState.lastUpdatedTime || dinnerList.lastUpdatedTime}",
+                "fontSize": 12,
                 "color": "#AAB7B8",
                 "grow": 1,
                 "textAlign": "right",
@@ -131,6 +144,7 @@
             ]
           }
         ]
+        }
       }
     ]
   }

@@ -1,34 +1,48 @@
 {
   "dinnerList": {
     "title": "Dinnertime",
+    "source": "Fallback",
     "emptyText": "No meals yet",
     "items": [
       {
-        "date": "2026-04-28",
-        "day": "Tue",
-        "text": "NO LIVE DATA - fallback meal 1"
+        "date": "2026-05-21",
+        "day": "Thu",
+        "text": "Chicken Laksa with Pak Choi / Burger & Chips / Pizza & Dough Balls"
       },
       {
-        "date": "2026-04-27",
-        "day": "Mon",
-        "text": "NO LIVE DATA - fallback meal 2"
-      },
-      {
-        "date": "2026-04-26",
-        "day": "Sun",
-        "text": "NO LIVE DATA - fallback meal 3"
-      },
-      {
-        "date": "2026-04-25",
-        "day": "Sat",
-        "text": "NO LIVE DATA - fallback meal 4"
-      },
-      {
-        "date": "2026-04-24",
+        "date": "2026-05-22",
         "day": "Fri",
-        "text": "NO LIVE DATA - fallback meal 5"
+        "text": "Butter Chicken Curry & Naan / Tagliatelle Carbonara x2"
+      },
+      {
+        "date": "2026-05-23",
+        "day": "Sat",
+        "text": "Waitrose BBQ Cous Cous & Coleslaw / Beef & Halumi Burger & Chips"
+      },
+      {
+        "date": "2026-05-24",
+        "day": "Sun",
+        "text": "Mexican Enchiladas with Carne Molida . Sweet potato’s fries"
+      },
+      {
+        "date": "2026-05-25",
+        "day": "Mon",
+        "text": "Duck Race BBQ"
+      },
+      {
+        "date": "2026-05-26",
+        "day": "Tue",
+        "text": "Jerk Chicken Pittas with Greek Salad x 3 / Roast Chicken, Roasties, Gravy & Veg"
+      },
+      {
+        "date": "2026-05-27",
+        "day": "Wed",
+        "text": "Meatballs & Garlic Bread x 4"
       }
     ],
-    "lastUpdated": "2026-04-28"
+    "lastUpdated": "2026-05-21",
+    "lastUpdatedTime": "19:00:13",
+    "updatedAt": "2026-05-21T18:00:13.464Z",
+    "pushedAt": "2026-05-21T18:00:13.464Z"
   }
 }

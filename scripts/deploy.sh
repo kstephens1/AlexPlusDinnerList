@@ -20,7 +20,6 @@ LAMBDA_FUNCTION_NAME="${LAMBDA_FUNCTION_NAME:-$PROJECT_NAME}"
 LAMBDA_ROLE_NAME="${LAMBDA_ROLE_NAME:-$PROJECT_NAME-lambda-role}"
 DEPLOY_SKILL="${DEPLOY_SKILL:-0}"
 ASK_PROFILE="${ASK_PROFILE:-default}"
-MENU_KEY="${MENU_KEY:-dinner-menu/items.json}"
 TARGETS_KEY="${TARGETS_KEY:-dinner-menu/targets.json}"
 
 AWS=(aws --profile "$AWS_PROFILE" --region "$AWS_REGION")
@@ -41,6 +40,9 @@ require_cmd zip
 AWS_ACCOUNT_ID="$("${AWS_GLOBAL[@]}" sts get-caller-identity --query Account --output text)"
 S3_BUCKET_NAME="${S3_BUCKET_NAME:-$PROJECT_NAME-$AWS_ACCOUNT_ID-$AWS_REGION}"
 
+echo "Updating widget fallback datasource from local menu JSON..."
+node "$ROOT_DIR/scripts/update-widget-fallback.js"
+
 echo "Checking Lambda source..."
 (cd "$ROOT_DIR/lambda" && npm test)
 
@@ -48,6 +50,8 @@ echo "Building Lambda zip..."
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR/lambda"
 cp "$ROOT_DIR/lambda/index.js" "$ROOT_DIR/lambda/package.json" "$BUILD_DIR/lambda/"
+mkdir -p "$BUILD_DIR/lambda/data"
+cp "$ROOT_DIR/data/dinner-menu-items.json" "$BUILD_DIR/lambda/data/"
 if [[ -f "$ROOT_DIR/lambda/package-lock.json" ]]; then
   cp "$ROOT_DIR/lambda/package-lock.json" "$BUILD_DIR/lambda/"
   (cd "$BUILD_DIR/lambda" && npm ci --omit=dev)
@@ -86,7 +90,7 @@ JSON
   sleep 10
 fi
 
-echo "Ensuring S3 menu bucket exists..."
+echo "Ensuring S3 target registry bucket exists..."
 if ! "${AWS_GLOBAL[@]}" s3api head-bucket --bucket "$S3_BUCKET_NAME" >/dev/null 2>&1; then
   if [[ "$AWS_REGION" == "us-east-1" ]]; then
     "${AWS[@]}" s3api create-bucket --bucket "$S3_BUCKET_NAME" >/dev/null
@@ -113,7 +117,6 @@ cat > "$S3_POLICY_FILE" <<JSON
       "Condition": {
         "StringLike": {
           "s3:prefix": [
-            "$MENU_KEY",
             "$TARGETS_KEY"
           ]
         }
@@ -126,7 +129,6 @@ cat > "$S3_POLICY_FILE" <<JSON
         "s3:PutObject"
       ],
       "Resource": [
-        "arn:aws:s3:::$S3_BUCKET_NAME/$MENU_KEY",
         "arn:aws:s3:::$S3_BUCKET_NAME/$TARGETS_KEY"
       ]
     }
@@ -186,8 +188,7 @@ if [[ -n "${ALEXA_SKILL_ID:-}" ]]; then
     --profile "$ASK_PROFILE")"
 fi
 CURRENT_ENV_JSON="$CURRENT_ENV_JSON" \
-  MENU_BUCKET="$S3_BUCKET_NAME" \
-  MENU_KEY="$MENU_KEY" \
+  TARGETS_BUCKET="$S3_BUCKET_NAME" \
   TARGETS_KEY="$TARGETS_KEY" \
   ALEXA_SKILL_CLIENT_ID="${ALEXA_SKILL_CLIENT_ID:-}" \
   ALEXA_SKILL_CLIENT_SECRET="${ALEXA_SKILL_CLIENT_SECRET:-}" \
@@ -197,8 +198,9 @@ CURRENT_ENV_JSON="$CURRENT_ENV_JSON" \
     const current = JSON.parse(process.env.CURRENT_ENV_JSON || "{}") || {};
     const skillCredentials = JSON.parse(process.env.SKILL_CREDENTIALS_JSON || "{}") || {};
     const fetchedCredentials = skillCredentials.skillMessagingCredentials || skillCredentials;
-    current.MENU_BUCKET = process.env.MENU_BUCKET;
-    current.MENU_KEY = process.env.MENU_KEY;
+    delete current.MENU_BUCKET;
+    delete current.MENU_KEY;
+    current.TARGETS_BUCKET = process.env.TARGETS_BUCKET;
     current.TARGETS_KEY = process.env.TARGETS_KEY;
     if (process.env.ALEXA_SKILL_CLIENT_ID) {
       current.ALEXA_SKILL_CLIENT_ID = process.env.ALEXA_SKILL_CLIENT_ID;
@@ -219,50 +221,27 @@ CURRENT_ENV_JSON="$CURRENT_ENV_JSON" \
   --environment "file://$ENV_JSON_FILE" >/dev/null
 "${AWS[@]}" lambda wait function-updated --function-name "$LAMBDA_FUNCTION_NAME"
 
-echo "Uploading menu JSON..."
-"${AWS[@]}" s3api put-object \
-  --bucket "$S3_BUCKET_NAME" \
-  --key "$MENU_KEY" \
-  --body "$ROOT_DIR/data/dinner-menu-items.json" \
-  --content-type application/json >/dev/null
-
-echo "Configuring S3 trigger for menu updates..."
-BUCKET_ARN="arn:aws:s3:::$S3_BUCKET_NAME"
-"${AWS[@]}" lambda add-permission \
-  --function-name "$LAMBDA_FUNCTION_NAME" \
-  --statement-id s3-menu-updates \
-  --action lambda:InvokeFunction \
-  --principal s3.amazonaws.com \
-  --source-arn "$BUCKET_ARN" \
-  --source-account "$AWS_ACCOUNT_ID" >/dev/null 2>&1 || true
-
-NOTIFICATION_FILE="$BUILD_DIR/s3-notification.json"
-cat > "$NOTIFICATION_FILE" <<JSON
-{
-  "LambdaFunctionConfigurations": [
-    {
-      "Id": "DinnerMenuJsonUpdates",
-      "LambdaFunctionArn": "$FUNCTION_ARN",
-      "Events": [
-        "s3:ObjectCreated:*"
-      ],
-      "Filter": {
-        "Key": {
-          "FilterRules": [
-            {
-              "Name": "prefix",
-              "Value": "$MENU_KEY"
-            }
-          ]
-        }
-      }
-    }
-  ]
-}
-JSON
+echo "Disabling legacy S3 menu update trigger..."
+NOTIFICATION_FILE="$BUILD_DIR/s3-notification-empty.json"
+printf '{}\n' > "$NOTIFICATION_FILE"
 "${AWS[@]}" s3api put-bucket-notification-configuration \
   --bucket "$S3_BUCKET_NAME" \
   --notification-configuration "file://$NOTIFICATION_FILE"
+
+echo "Fetching known Alexa Data Store targets..."
+TARGETS_FILE="$BUILD_DIR/targets.json"
+if ! "${AWS[@]}" s3api get-object \
+  --bucket "$S3_BUCKET_NAME" \
+  --key "$TARGETS_KEY" \
+  "$TARGETS_FILE" >/dev/null 2>&1; then
+  printf '[]\n' > "$TARGETS_FILE"
+fi
+
+echo "Pushing local menu JSON directly to Alexa Data Store..."
+MENU_FILE="$ROOT_DIR/data/dinner-menu-items.json" \
+  TARGETS_FILE="$TARGETS_FILE" \
+  LAMBDA_ENV_FILE="$ENV_JSON_FILE" \
+  node "$ROOT_DIR/scripts/push-menu-to-datastore.js"
 
 echo "Updating skill-package/skill.json endpoint URI..."
 LAMBDA_ARN="$FUNCTION_ARN" node "$ROOT_DIR/scripts/set-skill-endpoint.js"
@@ -295,5 +274,5 @@ fi
 echo
 echo "Deployment complete."
 echo "Lambda ARN: $FUNCTION_ARN"
-echo "Menu JSON: s3://$S3_BUCKET_NAME/$MENU_KEY"
+echo "Target registry: s3://$S3_BUCKET_NAME/$TARGETS_KEY"
 echo "Skill endpoint file updated: $ROOT_DIR/skill-package/skill.json"
