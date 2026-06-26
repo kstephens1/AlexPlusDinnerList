@@ -14,3 +14,4 @@ coverage/
 *.zip
 *.pem
 *.key
+PROJECT_STATE.md
