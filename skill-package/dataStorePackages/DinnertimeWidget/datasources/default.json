@@ -5,44 +5,39 @@
     "emptyText": "No meals yet",
     "items": [
       {
-        "date": "2026-05-21",
-        "day": "Thu",
-        "text": "Chicken Laksa with Pak Choi / Burger & Chips / Pizza & Dough Balls"
-      },
-      {
-        "date": "2026-05-22",
+        "date": "2026-06-26",
         "day": "Fri",
-        "text": "Butter Chicken Curry & Naan / Tagliatelle Carbonara x2"
+        "text": "Sambal Chicken Skewers with Rice and Pak Choi, Carrot Ribbons & Tempura Prawns / Egg Ramen & & Tempura Prawns / Pizza & Garlic Bread"
       },
       {
-        "date": "2026-05-23",
+        "date": "2026-06-27",
         "day": "Sat",
-        "text": "Waitrose BBQ Cous Cous & Coleslaw / Beef & Halumi Burger & Chips"
+        "text": "M&S Fresh Pasta, Marscapone Sauce & Garlic Ciabatta Sticks / Chicken Chow Mein"
       },
       {
-        "date": "2026-05-24",
+        "date": "2026-06-28",
         "day": "Sun",
-        "text": "Mexican Enchiladas with Carne Molida . Sweet potato’s fries"
+        "text": "Naked Spiced Lamb Kofta Kebab Salad with Red Cabbage, Cheese and Yoghurt Sauce / Beef / Halumi Burgers & Fries / Churros"
       },
       {
-        "date": "2026-05-25",
+        "date": "2026-06-29",
         "day": "Mon",
-        "text": "Duck Race BBQ"
+        "text": "Spiced Chicken and Yellow Courgette Loaded Naans with Lemon-Garlic Yoghurt and Pickled Onion / Meatballs / Ragu Spaghetti"
       },
       {
-        "date": "2026-05-26",
+        "date": "2026-06-30",
         "day": "Tue",
-        "text": "Jerk Chicken Pittas with Greek Salad x 3 / Roast Chicken, Roasties, Gravy & Veg"
+        "text": "Chermoula Baked Chicken Thighs J with Roasted Aubergine, Harissa Rice and Yoghurt / Hot Doggo"
       },
       {
-        "date": "2026-05-27",
+        "date": "2026-07-01",
         "day": "Wed",
-        "text": "Meatballs & Garlic Bread x 4"
+        "text": "Tuna Nicoisse Salad / Ham Omelette & Fries & Cucumber"
       }
     ],
-    "lastUpdated": "2026-05-21",
-    "lastUpdatedTime": "19:00:13",
-    "updatedAt": "2026-05-21T18:00:13.464Z",
-    "pushedAt": "2026-05-21T18:00:13.464Z"
+    "lastUpdated": "2026-06-26",
+    "lastUpdatedTime": "13:11:37",
+    "updatedAt": "2026-06-26T12:11:37.551Z",
+    "pushedAt": "2026-06-26T12:11:37.551Z"
   }
 }

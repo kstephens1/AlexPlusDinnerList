@@ -126,7 +126,7 @@
             "items": [
               {
                 "type": "Text",
-                "text": "v1.0.15",
+                "text": "v1.0.19",
                 "fontSize": 12,
                 "color": "#AAB7B8",
                 "grow": 1,

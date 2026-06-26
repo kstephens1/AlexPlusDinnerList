@@ -42,7 +42,44 @@ The Lambda also seeds Alexa Data Store when the widget install/open lifecycle ar
 ## Data Store Contract
 
 The widget reads live menu data from Alexa Data Store, not directly from S3.
-The current APL document prefers this combined key:
+The current APL document renders visible meal rows from this key:
+
+```text
+namespace: Dinnertime
+key: items
+```
+
+Expected `Dinnertime/items` value:
+
+```json
+[
+  {
+    "date": "2026-04-28",
+    "day": "Tue",
+    "text": "meal 1"
+  }
+]
+```
+
+Lambda writes the footer timestamp and summary metadata to:
+
+```text
+namespace: Dinnertime
+key: meta
+```
+
+Expected `Dinnertime/meta` value:
+
+```json
+{
+  "title": "Dinnertime",
+  "itemCount": 1,
+  "lastUpdated": "2026-05-13",
+  "latestMealDate": "2026-04-28"
+}
+```
+
+Lambda also writes a combined compatibility object:
 
 ```text
 namespace: Dinnertime
@@ -67,36 +104,6 @@ Expected `Dinnertime/state` value:
 }
 ```
 
-Lambda also writes these compatibility keys:
-
-```text
-namespace: Dinnertime
-key: items
-```
-
-Expected `Dinnertime/items` value:
-
-```json
-[
-  {
-    "date": "2026-04-28",
-    "day": "Tue",
-    "text": "meal 1"
-  }
-]
-```
-
-Expected `Dinnertime/meta` value:
-
-```json
-{
-  "title": "Dinnertime",
-  "itemCount": 1,
-  "lastUpdated": "2026-05-13",
-  "latestMealDate": "2026-04-28"
-}
-```
-
 Rules:
 
 - `date` is a `YYYY-MM-DD` string.
@@ -114,7 +121,7 @@ docs/schemas/dinner-menu-items.schema.json
 
 ## Fallback Data
 
-If Alexa Data Store has no live data for `Dinnertime/state` or compatibility `Dinnertime/items`, the widget falls back to:
+If Alexa Data Store has no live data for `Dinnertime/items` or compatibility `Dinnertime/state`, the widget falls back to:
 
 ```text
 NO LIVE DATA - fallback meal 1
@@ -141,13 +148,33 @@ Credentials already used successfully:
 - AWS CLI profile `default`
 - ASK CLI profile `default`
 
-Deploy everything:
+For normal weekly meal changes, edit:
+
+```text
+data/dinner-menu-items.json
+```
+
+Then push only the menu update:
+
+```bash
+./scripts/push-menu.sh
+```
+
+Use this when the Lambda and skill configuration are already deployed and only the meals changed. The script:
+
+- updates the widget fallback datasource from `data/dinner-menu-items.json`
+- packages the Lambda with the updated bundled fallback menu
+- updates the deployed Lambda function code
+- fetches known Alexa Data Store widget targets from S3
+- pushes the local menu JSON directly to Alexa Data Store
+
+Deploy everything only when Lambda behavior, IAM/S3 configuration, skill metadata, or first-time setup changes:
 
 ```bash
 ./scripts/deploy.sh
 ```
 
-The script:
+The full deploy script:
 
 - validates Lambda syntax
 - packages Lambda

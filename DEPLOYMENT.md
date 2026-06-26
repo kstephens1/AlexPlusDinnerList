@@ -196,23 +196,23 @@ s3://<bucket>/dinner-menu/targets.json
 
 The target registry is populated when the skill receives `LaunchRequest`, `Alexa.DataStore.PackageManager.UsagesInstalled`, or `Alexa.DataStore.PackageManager.UpdateRequest`. If you update the menu before the Echo Show has opened/installed the current deployment at least once, there may be no registered target to push to yet. Open `Dinnertime` or remove/re-add the widget once, then upload the menu JSON again.
 
-Lambda writes the live widget data to:
-
-```text
-namespace: Dinnertime
-key: state
-```
-
-The widget renders from `Dinnertime/state` first. Lambda also writes these compatibility keys:
+Lambda writes the visible widget rows to:
 
 ```text
 namespace: Dinnertime
 key: items
 ```
 
+The widget renders from `Dinnertime/items` first. Lambda also writes these related keys:
+
 ```text
 namespace: Dinnertime
 key: meta
+```
+
+```text
+namespace: Dinnertime
+key: state
 ```
 
 Use `Alexa, open dinnertime` when testing the skill by voice. This project includes `en-US` and `en-GB` interaction models; make sure the simulator/device locale is one of those locales.
